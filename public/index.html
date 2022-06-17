@@ -4,7 +4,7 @@
         <style>
          html,
          body {
-             height: 100%;
+             height: 90%;
          }
 
          /* Scale canvas with resize attribute to full size */
@@ -12,12 +12,18 @@
              width: 100%;
              height: 100%;
          }
+
         </style>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <script type="text/javascript" src="js/paper-full.js"></script>
         <script type="text/paperscript" src="js/game.js" canvas="myCanvas"></script>
     </head>
     <body>
+        <h2>Instructions</h2>
+        Controls: Type letters, SPACE to submit guess, ENTER to shuffle tiles <br>
+        Backspace returns ALL tiles <br>
+        Yellow flash indicates that it is a valid word, but that you've already guess it. <br>
+        Red flash indicates that it is not a valid word.<br>
         <canvas id="myCanvas" resize></canvas>
     </body>
 </html>

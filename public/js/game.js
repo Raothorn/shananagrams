@@ -7,17 +7,70 @@ var settings = {
 };
 
 var bounds = {};
+var items = {};
+var anims = {};
 var game;
+var initialized = false;
 
 function init(puzzleData) {
     initBounds();
+    initItems();
 
-    game = new Game(puzzleData.word);
+    game = new Game(puzzleData.word, puzzleData.answers);
+}
+
+function initItems() {
+    var score = new PointText(bounds.botBoard.bottomLeft + new Point(0, 50));
+    score.content = "Score: 0";
+    score.fillColor = 'black';
+    score.fontSize = 32;
+    items.score = score;
+
+    anims.incorrectAnim = {isRunning: false, length: 0.1, time: 0.0, color:'red' };
 }
 
 //------------
 //-- EVENTS --
 //------------
+
+function onFrame(event) {
+    if (!initialized) return;
+
+    if(anims.incorrectAnim.isRunning) {
+        var anim = anims.incorrectAnim;
+
+        if(anim.time >= anim.length) {
+            anim.isRunning = false;
+
+            for (var i = 0; i < settings.NUM_TILES; i++) {
+                if(!game.bottomTiles[i]) continue;
+                var tilePath = game.bottomTiles[i].tileGroup.children["tile_path"];
+                tilePath.fillColor = anim.color;
+                tilePath.fillColor.alpha = 0.0;
+            }
+
+            game.reset(false);
+            return;
+        }
+
+        opacity = anim.time / anim.length;
+
+        for (var i = 0; i < settings.NUM_TILES; i++) {
+            if(!game.bottomTiles[i]) continue;
+            var tilePath = game.bottomTiles[i].tileGroup.children["tile_path"];
+            tilePath.fillColor = anim.color;
+            tilePath.fillColor.alpha = opacity;
+        }
+
+        anim.time += event.delta;
+    }
+}
+
+function startAnim(anim) {
+    anim.isRunning = true;
+    anim.time = 0.0;
+}
+
 function onMouseDown(event) {
     var point = event.downPoint;
 
@@ -43,6 +96,10 @@ function onKeyDown(event) {
         game.backspace();
     }
 
+    if(event.key == 'enter') {
+        game.reset(true);
+    }
+
     if(event.key == 'space') {
         game.submitGuess();
     }
@@ -54,8 +111,10 @@ function onKeyDown(event) {
 //---------
 function Game(word, answers) {
     this.word = word;
+    this.answers = answers;
     this.topTiles = [null, null, null, null, null, null];
     this.bottomTiles = [null, null, null, null, null, null];
+    this.guesses = [];
 
     this.reset(true);
 }
@@ -92,6 +151,8 @@ Game.prototype.reset = function(doShuffle) {
 
         var tilePath = new Path.Rectangle(bounds.topBoardSquares[i]);
         tilePath.strokeColor = "black";
+        tilePath.fillColor = 'red';
+        tilePath.fillColor.alpha = 0.0;
         tilePath.name = "tile_path";
 
         var letter = new PointText(tileBounds.topLeft);
@@ -113,8 +174,21 @@ Game.prototype.submitGuess = function() {
 
     if (guess == "") return;
 
-    console.log(guess);
-    this.reset();
+    if(this.guesses.includes(guess)) {
+        anims.incorrectAnim.color = 'yellow';
+        startAnim(anims.incorrectAnim);
+    }
+    else if (this.answers.includes(guess)) {
+        this.guesses.push(guess);
+        this.reset();
+
+        var score = this.guesses.length;
+        items.score.content = "Score: " + score;
+    }
+    else {
+        anims.incorrectAnim.color = 'red';
+        startAnim(anims.incorrectAnim);
+    }
 };
 
 Game.prototype.swapTiles = function(ix1, ix2) {
@@ -198,11 +272,8 @@ Game.prototype.moveTopToBottom = function(index) {
 };
 
 Game.prototype.moveBottomToTop = function(index) {
-    console.log("hi");
     var fromBounds = bounds.botBoardSquares[index];
-    console.log(fromBounds);
     var fromTile = this.bottomTiles[index];
-    console.log(fromTile);
 
     var toIndex = -1;
     var toBounds = null;
@@ -301,6 +372,8 @@ function debugDrawRect(rect) {
 $(document).ready(function(){
     $.get("puzzle", function(data, status){
         init(data);
+
+        initialized = true;
     });
 });
 

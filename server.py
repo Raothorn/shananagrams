@@ -1,10 +1,12 @@
 from bottle import route, run, static_file
+import random
 
 MAX_LEN = 6  # i.e. the maximum possible character repeats
 
 #########
 # Logic #
 #########
+
 
 def create_word_table(dict_filepath):
     words = {}
@@ -25,6 +27,7 @@ def create_word_table(dict_filepath):
 
     return word_table
 
+
 def get_word_hash(word):
     # should be collision free up to anagrams
     hash = 0
@@ -33,6 +36,7 @@ def get_word_hash(word):
         hash += int(MAX_LEN ** char_val)
 
     return hash
+
 
 def all_subwords(word, word_table):
     subwords = set()
@@ -51,6 +55,16 @@ def all_subwords(word, word_table):
     return list(subwords)
 
 
+def get_word_options(word_table):
+    result = []
+
+    for words in word_table.values():
+        for word in words:
+            if len(word) == MAX_LEN:
+                result.append(word)
+
+    return result
+
 word_table = create_word_table("data/scrabble_dict.txt")
 
 #############
@@ -65,7 +79,11 @@ def server_static(filepath):
 
 @route('/puzzle')
 def get_puzzle():
-    word = "catnip"
+    # select word
+    word_options = get_word_options(word_table)
+    index = random.randint(0, len(word_options) - 1)
+    word = word_options[index]
+
     answers = all_subwords(word, word_table)
 
     answers.sort(key=lambda w: len(w))
