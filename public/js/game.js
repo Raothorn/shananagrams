@@ -1,17 +1,18 @@
 var settings = {
     WIDTH: 800,
     HEIGHT: 600,
-    NUM_TILES: 6,
+    NUM_TILES: 6
+,
     TILE_SPACING: 10,
 };
 
 var bounds = {};
 var game;
 
-function init() {
+function init(puzzleData) {
     initBounds();
 
-    game = new Game("pizzas");
+    game = new Game(puzzleData.word);
 }
 
 //------------
@@ -42,7 +43,7 @@ function onKeyDown(event) {
         game.backspace();
     }
 
-    if(event.key == 'enter') {
+    if(event.key == 'space') {
         game.submitGuess();
     }
 	  // When a key is pressed, set the content of the text item:
@@ -51,7 +52,34 @@ function onKeyDown(event) {
 //---------
 //-- GAME--
 //---------
-function Game(word) {
+function Game(word, answers) {
+    this.word = word;
+    this.topTiles = [null, null, null, null, null, null];
+    this.bottomTiles = [null, null, null, null, null, null];
+
+    this.reset(true);
+}
+
+Game.prototype.reset = function(doShuffle) {
+    var word = this.word;
+    if(doShuffle) {
+        word = shuffle(word);
+        // Maintain shuffle
+        this.word = word;
+    }
+
+    for(var i = 0; i < settings.NUM_TILES; i++) {
+        if(this.topTiles[i]) {
+            this.topTiles[i].tileGroup.remove();
+        }
+        if(this.bottomTiles[i]) {
+            this.bottomTiles[i].tileGroup.remove();
+        }
+
+        this.topTiles[i] = null;
+        this.bottomTiles[i] = null;
+    }
+
     this.topTiles = [null, null, null, null, null, null];
     this.bottomTiles = [null, null, null, null, null, null];
 
@@ -78,7 +106,7 @@ function Game(word) {
 
         this.topTiles[i] = tile;
     }
-}
+};
 
 Game.prototype.submitGuess = function() {
     var guess = this.currentGuess();
@@ -86,6 +114,24 @@ Game.prototype.submitGuess = function() {
     if (guess == "") return;
 
     console.log(guess);
+    this.reset();
+};
+
+Game.prototype.swapTiles = function(ix1, ix2) {
+    tile1 = this.topTiles[ix1];
+    tile2 = this.topTiles[ix2];
+
+    //swap physical locations
+    tile1Loc = tile1.tileGroup.position;
+    tile2Loc = tile2.tileGroup.position;
+    tile1Letter = tile1.letter;
+    tile2Letter = tile2.letter;
+
+    tile1.tileGroup.position = tile2Loc;
+    tile2.tileGroup.position = tile1Loc;
+
+    tile1.letter = tile2Letter;
+    tile2.letter = tile1Letter;
 };
 
 Game.prototype.currentGuess = function() {
@@ -251,5 +297,29 @@ function debugDrawRect(rect) {
     path.strokeColor = 'black';
 }
 
-init();
 
+$(document).ready(function(){
+    $.get("puzzle", function(data, status){
+        init(data);
+    });
+});
+
+function shuffle(string) {
+    array = Array.from(string);
+    var currentIndex = array.length;
+
+    // While there remain elements to shuffle.
+    while (currentIndex != 0) {
+
+        // Pick a remaining element.
+        var randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        var temp = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temp;
+
+    }
+
+    return array.join("");
+}
